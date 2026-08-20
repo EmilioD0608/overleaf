@@ -19,7 +19,8 @@ services:
   # Overleaf Application
   # ---------------------------------------------------------------------------
   sharelatex:
-    image: sharelatex/sharelatex
+    build: .
+    image: sharelatex/sharelatex:custom
     container_name: sharelatex
     restart: unless-stopped
     depends_on:
