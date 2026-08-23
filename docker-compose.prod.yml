@@ -23,6 +23,14 @@ services:
     image: sharelatex/sharelatex:custom
     container_name: sharelatex
     restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: '8'
+          memory: 8G
+        reservations:
+          cpus: '4'
+          memory: 4G
     depends_on:
       mongo:
         condition: service_healthy
@@ -33,6 +41,8 @@ services:
     stop_grace_period: 60s
     volumes:
       - ${OVERLEAF_DATA_PATH:-/opt/overleaf}/sharelatex_data:/var/lib/overleaf
+    tmpfs:
+      - /var/lib/overleaf/tmp:exec,size=2G
     environment:
       # --- DNS / Node options ---
       NODE_OPTIONS: "--dns-result-order=ipv4first"
@@ -58,6 +68,11 @@ services:
 
       # --- Compilación ---
       COMPILE_TIMEOUT: ${COMPILE_TIMEOUT:-240}
+      FILESTORE_PARALLEL_FILE_DOWNLOADS: "8"
+      ENABLE_PDF_CACHING: "true"
+      ENABLE_PDF_CACHING_DARK: "true"
+      PDF_CACHING_ENABLE_WORKER_POOL: "true"
+      PDF_CACHING_WORKER_POOL_SIZE: "8"
 
       # --- Idioma ---
       OVERLEAF_SITE_LANGUAGE: ${OVERLEAF_SITE_LANGUAGE:-es}
@@ -121,7 +136,7 @@ services:
   # Redis
   # ---------------------------------------------------------------------------
   redis:
-    image: redis:6.2
+    image: redis:7.2-alpine
     container_name: redis
     restart: unless-stopped
     volumes:
