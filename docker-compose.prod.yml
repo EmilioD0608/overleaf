@@ -27,10 +27,10 @@ services:
       resources:
         limits:
           cpus: '8'
-          memory: 8G
+          memory: 16G
         reservations:
           cpus: '4'
-          memory: 4G
+          memory: 8G
     depends_on:
       mongo:
         condition: service_healthy
