@@ -45,7 +45,7 @@ services:
       - /var/lib/overleaf/tmp:exec,size=2G
     environment:
       # --- DNS / Node options ---
-      NODE_OPTIONS: "--dns-result-order=ipv4first"
+      NODE_OPTIONS: "--dns-result-order=ipv4first --max-old-space-size=4096"
 
       # --- Identidad del sitio ---
       OVERLEAF_APP_NAME: ${OVERLEAF_APP_NAME:-Overleaf Community Edition}
@@ -70,7 +70,7 @@ services:
       COMPILE_TIMEOUT: ${COMPILE_TIMEOUT:-240}
       FILESTORE_PARALLEL_FILE_DOWNLOADS: "8"
       ENABLE_PDF_CACHING: "true"
-      ENABLE_PDF_CACHING_DARK: "true"
+      ENABLE_PDF_CACHING_DARK: "false"
       PDF_CACHING_ENABLE_WORKER_POOL: "true"
       PDF_CACHING_WORKER_POOL_SIZE: "8"
 
