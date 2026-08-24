@@ -1124,6 +1124,11 @@ async function initialize(webRouter, privateApiRouter, publicApiRouter) {
     AuthorizationMiddleware.ensureUserIsSiteAdmin,
     AdminController.clearMessages
   )
+  webRouter.post(
+    '/admin/users/:user_id/toggle-status',
+    AuthorizationMiddleware.ensureUserIsSiteAdmin,
+    AdminController.toggleUserStatus
+  )
 
   privateApiRouter.get('/perfTest', (req, res) => {
     plainTextResponse(res, 'hello')

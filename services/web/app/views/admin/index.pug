@@ -13,7 +13,8 @@ block content
 							.ol-tabs(data-ol-bookmarkable-tabset)
 								.nav-tabs-container
 									ul.nav.nav-tabs.align-left(role='tablist')
-										+bookmarkable-tabset-header('system-messages', 'System Messages', true)
+										+bookmarkable-tabset-header('user-management', 'Gestión de Usuarios', true)
+										+bookmarkable-tabset-header('system-messages', 'System Messages')
 										+bookmarkable-tabset-header('open-sockets', 'Open Sockets')
 										+bookmarkable-tabset-header('open-close-editor', 'Open/Close Editor')
 										if hasFeature('saas')
@@ -22,7 +23,97 @@ block content
 											+bookmarkable-tabset-header('debug-projects', 'Debug Projects')
 
 								.tab-content
-									.tab-pane.active(role='tabpanel' id='system-messages')
+									.tab-pane.active(role='tabpanel' id='user-management')
+										.row.row-spaced
+											.col-xs-12.col-md-6
+												h3 Usuarios Registrados (#{users ? users.length : 0})
+											.col-xs-12.col-md-6
+												input#user-search-input.form-control(
+													type='text'
+													placeholder='🔍 Buscar por email o nombre...'
+													onkeyup='filterUserTable()'
+													style='margin-top: 10px; margin-bottom: 10px;'
+												)
+										.table-responsive
+											table#users-table.table.table-striped.table-hover
+												thead
+													tr
+														th Email
+														th Nombre
+														th Rol
+														th Fecha de Registro
+														th Último Acceso
+														th Estado
+														th(style='text-align: center;') Acciones
+												tbody
+													if users && users.length
+														each u in users
+															tr(class=u.deactivated ? 'danger' : '')
+																td.user-email
+																	strong= u.email
+																td.user-name
+																	| #{u.first_name || ''} #{u.last_name || ''}
+																td
+																	if u.isAdmin
+																		span.badge.badge-primary(style='background-color: #007bff; color: white;') Admin
+																	else
+																		span.badge.badge-secondary(style='background-color: #6c757d; color: white;') Usuario
+																td
+																	if u.signUpDate
+																		| #{new Date(u.signUpDate).toLocaleDateString('es-ES', { year: 'numeric', month: 'short', day: 'numeric' })}
+																	else
+																		| -
+																td
+																	if u.lastLoggedIn
+																		| #{new Date(u.lastLoggedIn).toLocaleDateString('es-ES', { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
+																	else
+																		span.text-muted Nunca
+																td
+																	if u.deactivated
+																		span.label.label-danger.badge.badge-danger(style='background-color: #dc3545; color: white;') 🔴 Desactivado
+																	else
+																		span.label.label-success.badge.badge-success(style='background-color: #28a745; color: white;') 🟢 Activo
+																td(style='text-align: center;')
+																	- const isSelf = currentUser && (currentUser._id == u._id.toString() || (currentUser.email && currentUser.email === u.email))
+																	if isSelf
+																		span.text-muted (Tú)
+																	else
+																		form(
+																			method='post'
+																			action=`/admin/users/${u._id}/toggle-status`
+																			style='display:inline;'
+																			onsubmit=`return confirm("${u.deactivated ? '¿Deseas reactivar el acceso para ' + u.email + '?' : '¿Estás seguro de desactivar a ' + u.email + '? Se cerrarán todas sus sesiones activas inmediatamente.'}")`
+																		)
+																			input(name='_csrf' type='hidden' value=csrfToken)
+																			if u.deactivated
+																				button.btn.btn-xs.btn-sm.btn-success(type='submit') Activar
+																			else
+																				button.btn.btn-xs.btn-sm.btn-danger(type='submit') Desactivar
+													else
+														tr
+															td(colspan='7' style='text-align: center; color: #888;') No se encontraron usuarios.
+										script.
+											function filterUserTable() {
+												var input = document.getElementById('user-search-input');
+												var filter = input.value.toLowerCase();
+												var table = document.getElementById('users-table');
+												var tr = table.getElementsByTagName('tr');
+												for (var i = 1; i < tr.length; i++) {
+													var emailTd = tr[i].getElementsByClassName('user-email')[0];
+													var nameTd = tr[i].getElementsByClassName('user-name')[0];
+													if (emailTd || nameTd) {
+														var emailTxt = emailTd ? (emailTd.textContent || emailTd.innerText) : '';
+														var nameTxt = nameTd ? (nameTd.textContent || nameTd.innerText) : '';
+														if (emailTxt.toLowerCase().indexOf(filter) > -1 || nameTxt.toLowerCase().indexOf(filter) > -1) {
+															tr[i].style.display = '';
+														} else {
+															tr[i].style.display = 'none';
+														}
+													}
+												}
+											}
+
+									.tab-pane(role='tabpanel' id='system-messages')
 										each message in systemMessages
 											ul.system-messages
 												li.system-message.row-spaced #{message.content}

@@ -293,6 +293,19 @@ const AuthenticationController = {
       }
     }
 
+    if (user && user.deactivated) {
+      Metrics.inc('login_failure_reason', 1, { status: 'user_deactivated' })
+      logger.warn({ userId: user._id, email }, 'login attempt for deactivated user')
+      return {
+        user: false,
+        info: {
+          text: 'Esta cuenta ha sido desactivada por un administrador.',
+          type: 'error',
+          status: 403,
+        },
+      }
+    }
+
     if (user && AuthenticationController.captchaRequiredForLogin(req, user)) {
       Metrics.inc('login_failure_reason', 1, { status: 'captcha_missing' })
       return {

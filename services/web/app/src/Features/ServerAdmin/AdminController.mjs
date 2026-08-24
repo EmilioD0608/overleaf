@@ -7,6 +7,8 @@ import TpdsProjectFlusher from '../ThirdPartyDataStore/TpdsProjectFlusher.mjs'
 import EditorRealTimeController from '../Editor/EditorRealTimeController.mjs'
 import SystemMessageManager from '../SystemMessages/SystemMessageManager.mjs'
 import ProjectGetter from '../Project/ProjectGetter.mjs'
+import { User } from '../../models/User.mjs'
+import UserSessionsManager from '../User/UserSessionsManager.mjs'
 import Modules from '../../infrastructure/Modules.mjs'
 import Features from '../../infrastructure/Features.mjs'
 import { expressify } from '@overleaf/promise-utils'
@@ -43,11 +45,25 @@ const AdminController = {
 
     const privilegesMatrix = privilegesMatrixResults[0] || null
 
+    let users = []
+    try {
+      users = await User.find(
+        {},
+        'email first_name last_name isAdmin signUpDate lastLoggedIn deactivated loginCount'
+      )
+        .sort({ signUpDate: -1 })
+        .lean()
+    } catch (err) {
+      logger.error({ err }, 'failed to fetch users for admin panel')
+    }
+
     const toRender = {
       title: 'System Admin',
       openSockets,
       systemMessages,
       privilegesMatrix,
+      users,
+      currentUser: req.session?.passport?.user || req.session?.user,
     }
 
     if (Features.hasFeature('saas')) {
@@ -109,6 +125,54 @@ const AdminController = {
       res.redirect('/admin#system-messages')
     })
   },
+
+  toggleUserStatus: expressify(async (req, res, next) => {
+    const targetUserId = req.params.user_id
+    const currentUserId = (
+      req.session?.passport?.user?._id || req.session?.user?._id
+    )?.toString()
+
+    if (targetUserId === currentUserId) {
+      logger.warn({ targetUserId }, 'admin attempted to toggle own status')
+      return res
+        .status(400)
+        .send('No puedes desactivar tu propia cuenta de administrador.')
+    }
+
+    const targetUser = await User.findById(targetUserId).exec()
+    if (!targetUser) {
+      return res.status(404).send('Usuario no encontrado')
+    }
+
+    const newStatus = !targetUser.deactivated
+    targetUser.deactivated = newStatus
+    if (newStatus) {
+      targetUser.deactivatedAt = new Date()
+      targetUser.deactivatedBy = currentUserId
+    } else {
+      targetUser.deactivatedAt = undefined
+      targetUser.deactivatedBy = undefined
+    }
+
+    await targetUser.save()
+    logger.info(
+      { targetUserId, newStatus, currentUserId },
+      'toggled user deactivation status'
+    )
+
+    if (newStatus) {
+      try {
+        await UserSessionsManager.promises.removeSessionsFromRedis(targetUser)
+      } catch (err) {
+        logger.error(
+          { err, targetUserId },
+          'failed to remove sessions for deactivated user'
+        )
+      }
+    }
+
+    res.redirect('/admin#user-management')
+  }),
 }
 
 export default AdminController

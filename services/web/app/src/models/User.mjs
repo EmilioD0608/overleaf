@@ -86,6 +86,9 @@ export const UserSchema = new Schema(
     lastTrial: { type: Date },
     loginCount: { type: Number, default: 0 },
     holdingAccount: { type: Boolean, default: false },
+    deactivated: { type: Boolean, default: false },
+    deactivatedAt: { type: Date },
+    deactivatedBy: { type: ObjectId, ref: 'User' },
     ace: {
       mode: { type: String, default: 'none' },
       theme: { type: String, default: 'textmate' },
