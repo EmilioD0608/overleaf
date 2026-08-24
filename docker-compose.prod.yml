@@ -26,11 +26,11 @@ services:
     deploy:
       resources:
         limits:
-          cpus: '8'
-          memory: 16G
-        reservations:
           cpus: '4'
-          memory: 8G
+          memory: 8.5G
+        reservations:
+          cpus: '2'
+          memory: 4G
     depends_on:
       mongo:
         condition: service_healthy
@@ -42,10 +42,12 @@ services:
     volumes:
       - ${OVERLEAF_DATA_PATH:-/opt/overleaf}/sharelatex_data:/var/lib/overleaf
     tmpfs:
-      - /var/lib/overleaf/tmp:exec,size=2G
+      # Montaje de temporales y directorio de compilación en RAM para acelerar I/O
+      - /var/lib/overleaf/tmp:exec,size=1G
+      - /var/lib/overleaf/data/compiles:rw,noexec,nosuid,size=2G
     environment:
-      # --- DNS / Node options ---
-      NODE_OPTIONS: "--dns-result-order=ipv4first --max-old-space-size=4096"
+      # --- DNS / Node options / GC ---
+      NODE_OPTIONS: "--dns-result-order=ipv4first --max-old-space-size=2048"
 
       # --- Identidad del sitio ---
       OVERLEAF_APP_NAME: ${OVERLEAF_APP_NAME:-Overleaf Community Edition}
@@ -66,13 +68,19 @@ services:
       ENABLE_CONVERSIONS: "true"
       EMAIL_CONFIRMATION_DISABLED: "true"
 
-      # --- Compilación ---
-      COMPILE_TIMEOUT: ${COMPILE_TIMEOUT:-240}
-      FILESTORE_PARALLEL_FILE_DOWNLOADS: "8"
+      # --- Optimización de Compilación LaTeX (CLSI) ---
+      COMPILE_TIMEOUT: ${COMPILE_TIMEOUT:-180}
+      FILESTORE_PARALLEL_FILE_DOWNLOADS: "4"
+      DISABLE_PER_USER_COMPILES: "true"
       ENABLE_PDF_CACHING: "true"
       ENABLE_PDF_CACHING_DARK: "false"
       PDF_CACHING_ENABLE_WORKER_POOL: "true"
-      PDF_CACHING_WORKER_POOL_SIZE: "8"
+      PDF_CACHING_WORKER_POOL_SIZE: "4"
+      TEXLIVE_MAX_PRINT_LINE: "1000"
+
+      # --- Limpieza de Recursos y Rendimiento Frontend ---
+      ENABLE_CRON_RESOURCE_DELETION: "true"
+      PRECOMPILE_PUG_TEMPLATES_AT_BOOT_TIME: "true"
 
       # --- Idioma ---
       OVERLEAF_SITE_LANGUAGE: ${OVERLEAF_SITE_LANGUAGE:-es}
@@ -104,13 +112,19 @@ services:
       - overleaf-net
 
   # ---------------------------------------------------------------------------
-  # MongoDB (con Replica Set requerido por Overleaf)
+  # MongoDB (con Replica Set y Caché WiredTiger optimizada)
   # ---------------------------------------------------------------------------
   mongo:
     image: mongo:8.0
     container_name: mongo
     restart: unless-stopped
-    command: "--replSet overleaf"
+    command: ["--replSet", "overleaf", "--wiredTigerCacheSizeGB", "1.5"]
+    deploy:
+      resources:
+        limits:
+          memory: 2.5G
+        reservations:
+          memory: 1G
     volumes:
       - ${OVERLEAF_DATA_PATH:-/opt/overleaf}/mongo_data:/data/db
       - ./bin/shared/mongodb-init-replica-set.js:/docker-entrypoint-initdb.d/mongodb-init-replica-set.js
@@ -133,12 +147,19 @@ services:
       - overleaf-net
 
   # ---------------------------------------------------------------------------
-  # Redis
+  # Redis (con política de desalojo Volatile-LRU)
   # ---------------------------------------------------------------------------
   redis:
     image: redis:7.2-alpine
     container_name: redis
     restart: unless-stopped
+    command: ["redis-server", "--maxmemory", "768mb", "--maxmemory-policy", "volatile-lru", "--save", "900", "1", "300", "10"]
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+        reservations:
+          memory: 256M
     volumes:
       - ${OVERLEAF_DATA_PATH:-/opt/overleaf}/redis_data:/data
     healthcheck:
