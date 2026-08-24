@@ -10,6 +10,13 @@
 #   4. docker compose -f docker-compose.prod.yml up -d
 #   5. Crear usuario admin (ver instrucciones en .env.example)
 #
+# INSTALACIÓN ÚNICA DE TODOS LOS PAQUETES (SCHEME-FULL):
+#   Para que todos los paquetes queden guardados permanentemente en el volumen
+#   y los deploys futuros tomen solo segundos sin reinstalar nada, ejecuta una sola vez:
+#   docker exec -it sharelatex tlmgr option repository https://mirror.ctan.org/systems/texlive/tlnet
+#   docker exec -it sharelatex tlmgr update --self
+#   docker exec -it sharelatex tlmgr install scheme-full
+#
 # IMPORTANTE: Este compose usa la Community Edition (CE).
 # Sandboxed Compiles NO están disponibles en CE (requieren Server Pro).
 # =============================================================================
@@ -41,6 +48,8 @@ services:
     stop_grace_period: 60s
     volumes:
       - ${OVERLEAF_DATA_PATH:-/opt/overleaf}/sharelatex_data:/var/lib/overleaf
+      # Volumen persistente para todos los paquetes de TeXLive (Estrategia 2)
+      - texlive_data:/usr/local/texlive
     tmpfs:
       # Montaje de temporales y directorio de compilación en RAM para acelerar I/O
       - /var/lib/overleaf/tmp:exec,size=1G
@@ -176,8 +185,12 @@ services:
       - overleaf-net
 
 # =============================================================================
-# Red aislada
+# Volúmenes y Redes
 # =============================================================================
+volumes:
+  texlive_data:
+    name: overleaf_texlive_data
+
 networks:
   overleaf-net:
     driver: bridge
