@@ -6,7 +6,12 @@ const MongoUtils = require('@overleaf/mongo-utils')
 const config = require('config')
 const { MongoClient } = require('mongodb')
 
-const client = new MongoClient(config.mongo.uri)
+const mongoUri =
+  config?.mongo?.uri ||
+  process.env.OVERLEAF_MONGO_URL ||
+  process.env.MONGO_URL ||
+  'mongodb://mongo/sharelatex'
+const client = new MongoClient(mongoUri)
 const db = client.db()
 
 const chunks = db.collection('projectHistoryChunks')

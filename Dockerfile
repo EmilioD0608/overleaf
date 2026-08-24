@@ -16,7 +16,12 @@ WORKDIR /overleaf
 COPY libraries/ /overleaf/libraries/
 COPY services/ /overleaf/services/
 
-# 2. Compilar assets de frontend (Webpack y Pug) con el código actualizado
+# 2. Restaurar configuraciones de Server-CE para history-v1 y servicios globales
+COPY server-ce/config/production.json /overleaf/services/history-v1/config/production.json
+COPY server-ce/config/custom-environment-variables.json /overleaf/services/history-v1/config/custom-environment-variables.json
+COPY server-ce/config/settings.js /etc/overleaf/settings.js
+
+# 3. Compilar assets de frontend (Webpack y Pug) con el código actualizado
 RUN cd /overleaf/services/web && \
     (yarn run webpack:production || true) && \
     (yarn run precompile-pug || true)
