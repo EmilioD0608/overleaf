@@ -12,18 +12,20 @@ FROM sharelatex/sharelatex:latest
 
 WORKDIR /overleaf
 
-# 1. Copiar librerías y servicios con tus modificaciones locales
+# 1. Respaldar los assets compilados existentes (public, manifest.json)
+RUN cp -r /overleaf/services/web/public /tmp/web_public_backup
+
+# 2. Copiar librerías y servicios con tus modificaciones locales
 COPY libraries/ /overleaf/libraries/
 COPY services/ /overleaf/services/
 
-# 2. Restaurar configuraciones de Server-CE para history-v1 y servicios globales
+# 3. Restaurar los assets compilados en public y configuraciones de Server-CE
+RUN cp -rn /tmp/web_public_backup/* /overleaf/services/web/public/ && rm -rf /tmp/web_public_backup
 COPY server-ce/config/production.json /overleaf/services/history-v1/config/production.json
 COPY server-ce/config/custom-environment-variables.json /overleaf/services/history-v1/config/custom-environment-variables.json
 COPY server-ce/config/settings.js /etc/overleaf/settings.js
 
-# 3. Compilar assets de frontend (Webpack y Pug) con el código actualizado
-RUN cd /overleaf/services/web && \
-    (yarn run webpack:production || true) && \
-    (yarn run precompile-pug || true)
+# 4. Precompilar plantillas Pug (incluyendo la nueva vista de Gestión de Usuarios)
+RUN cd /overleaf/services/web && (yarn run precompile-pug || true)
 
 WORKDIR /overleaf
