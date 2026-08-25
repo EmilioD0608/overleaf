@@ -664,7 +664,7 @@ function _afterLoginSessionSetup(req, user, callback) {
     delete req.session.csrfSecret
 
     // Populate the analyticsId cache in the session AFTER switching it into logged-in mode.
-    req.session.analyticsId = user.analyticsId
+    req.session.analyticsId = user.analyticsId || user._id
 
     req.session.save(function (err) {
       if (err) {
@@ -702,26 +702,30 @@ function _loginAsyncHandlers(req, user, anonymousAnalyticsId, isNewUser) {
   LoginRateLimiter.recordSuccessfulLogin(user.email, () => {})
   AuthenticationController._recordSuccessfulLogin(user._id, () => {})
   AuthenticationController.ipMatchCheck(req, user)
-  if (typeof Analytics?.recordEventForMongoUserInBackground === 'function') {
-    Analytics.recordEventForMongoUserInBackground(user, 'user-logged-in', {
-      source: req.session.saml
-        ? 'saml'
-        : req.user_info?.auth_provider || 'email-password',
-    })
-  } else if (typeof Analytics?.recordEventForUserInBackground === 'function') {
-    Analytics.recordEventForUserInBackground(user._id, 'user-logged-in', {
-      source: req.session.saml
-        ? 'saml'
-        : req.user_info?.auth_provider || 'email-password',
-    })
-  }
-  if (typeof Analytics?.identifyUser === 'function') {
-    Analytics.identifyUser(
-      user._id,
-      anonymousAnalyticsId,
-      isNewUser,
-      Boolean(user.labsProgram)
-    )
+  try {
+    if (typeof Analytics?.recordEventForMongoUserInBackground === 'function') {
+      Analytics.recordEventForMongoUserInBackground(user, 'user-logged-in', {
+        source: req.session.saml
+          ? 'saml'
+          : req.user_info?.auth_provider || 'email-password',
+      })
+    } else if (typeof Analytics?.recordEventForUserInBackground === 'function') {
+      Analytics.recordEventForUserInBackground(user._id, 'user-logged-in', {
+        source: req.session.saml
+          ? 'saml'
+          : req.user_info?.auth_provider || 'email-password',
+      })
+    }
+    if (typeof Analytics?.identifyUser === 'function') {
+      Analytics.identifyUser(
+        user._id,
+        anonymousAnalyticsId,
+        isNewUser,
+        Boolean(user.labsProgram)
+      )
+    }
+  } catch (err) {
+    logger.warn({ err }, 'failed to record analytics on login')
   }
 
   logger.debug(

@@ -521,14 +521,9 @@ function _getIdsFromMongoUser(user) {
   if (!userId) {
     throw new Error('bug: include db.users._id in projection')
   }
-  const analyticsId = user?.analyticsId
-  if (!analyticsId) {
-    throw new Error('bug: include db.users.analyticsId in projection')
-  }
-  const labsProgram = user?.labsProgram
-  if (typeof labsProgram !== 'boolean') {
-    throw new Error('bug: include db.users.labsProgram in projection')
-  }
+  const analyticsId = user?.analyticsId || userId
+  const labsProgram =
+    typeof user?.labsProgram === 'boolean' ? user.labsProgram : false
   return { userId, analyticsId, labsProgram }
 }
 
