@@ -48,8 +48,6 @@ services:
     stop_grace_period: 60s
     volumes:
       - ${OVERLEAF_DATA_PATH:-/opt/overleaf}/sharelatex_data:/var/lib/overleaf
-      # Volumen persistente para todos los paquetes de TeXLive (Estrategia 2)
-      - texlive_data:/usr/local/texlive
     tmpfs:
       # Montaje de temporales y directorio de compilación en RAM para acelerar I/O
       - /var/lib/overleaf/tmp:exec,size=1G
@@ -185,12 +183,8 @@ services:
       - overleaf-net
 
 # =============================================================================
-# Volúmenes y Redes
+# Redes
 # =============================================================================
-volumes:
-  texlive_data:
-    name: overleaf_texlive_data
-
 networks:
   overleaf-net:
     driver: bridge
