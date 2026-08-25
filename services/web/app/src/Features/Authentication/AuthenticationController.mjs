@@ -210,14 +210,19 @@ const AuthenticationController = {
 
     _loginAsyncHandlers(req, user, anonymousAnalyticsId, isNewUser)
     const userId = user._id
+    const ipAddress = req.ip || req.connection?.remoteAddress || '127.0.0.1'
 
-    await UserAuditLogHandler.promises.addEntry(
-      userId,
-      'login',
-      userId,
-      req.ip,
-      auditInfo
-    )
+    try {
+      await UserAuditLogHandler.promises.addEntry(
+        userId,
+        'login',
+        userId,
+        ipAddress,
+        auditInfo
+      )
+    } catch (err) {
+      logger.warn({ err, userId }, 'failed to write audit log entry on login')
+    }
 
     await _afterLoginSessionSetupAsync(req, user)
 
@@ -271,7 +276,7 @@ const AuthenticationController = {
 
     const { fromKnownDevice } = AuthenticationController.getAuditInfo(req)
     const auditLog = {
-      ipAddress: req.ip,
+      ipAddress: req.ip || req.connection?.remoteAddress || '127.0.0.1',
       info: { method: 'Password login', fromKnownDevice },
     }
 

@@ -2,7 +2,7 @@ import Settings from '@overleaf/settings'
 import mongoose from '../infrastructure/Mongoose.mjs'
 import TokenGenerator from '../Features/TokenGenerator/TokenGenerator.mjs'
 const { Schema } = mongoose
-const { ObjectId } = Schema
+const ObjectId = Schema.Types.ObjectId || Schema.ObjectId || mongoose.Types.ObjectId
 
 // See https://stackoverflow.com/questions/386294/what-is-the-maximum-length-of-a-valid-email-address/574698#574698
 const MAX_EMAIL_LENGTH = 254
