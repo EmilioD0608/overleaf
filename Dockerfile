@@ -20,6 +20,7 @@ WORKDIR /overleaf
 # 2. Inyectar modificaciones en el servicio Web (Modelo de Usuario, Auth, Admin y Vistas)
 COPY services/web/app/src/models/User.mjs /overleaf/services/web/app/src/models/User.mjs
 COPY services/web/app/src/Features/Authentication/AuthenticationController.mjs /overleaf/services/web/app/src/Features/Authentication/AuthenticationController.mjs
+COPY services/web/app/src/Features/Analytics/AnalyticsManager.mjs /overleaf/services/web/app/src/Features/Analytics/AnalyticsManager.mjs
 COPY services/web/app/src/Features/ServerAdmin/AdminController.mjs /overleaf/services/web/app/src/Features/ServerAdmin/AdminController.mjs
 COPY services/web/app/src/router.mjs /overleaf/services/web/app/src/router.mjs
 COPY services/web/app/views/admin/index.pug /overleaf/services/web/app/views/admin/index.pug

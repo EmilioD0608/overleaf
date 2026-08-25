@@ -702,17 +702,27 @@ function _loginAsyncHandlers(req, user, anonymousAnalyticsId, isNewUser) {
   LoginRateLimiter.recordSuccessfulLogin(user.email, () => {})
   AuthenticationController._recordSuccessfulLogin(user._id, () => {})
   AuthenticationController.ipMatchCheck(req, user)
-  Analytics.recordEventForMongoUserInBackground(user, 'user-logged-in', {
-    source: req.session.saml
-      ? 'saml'
-      : req.user_info?.auth_provider || 'email-password',
-  })
-  Analytics.identifyUser(
-    user._id,
-    anonymousAnalyticsId,
-    isNewUser,
-    Boolean(user.labsProgram)
-  )
+  if (typeof Analytics?.recordEventForMongoUserInBackground === 'function') {
+    Analytics.recordEventForMongoUserInBackground(user, 'user-logged-in', {
+      source: req.session.saml
+        ? 'saml'
+        : req.user_info?.auth_provider || 'email-password',
+    })
+  } else if (typeof Analytics?.recordEventForUserInBackground === 'function') {
+    Analytics.recordEventForUserInBackground(user._id, 'user-logged-in', {
+      source: req.session.saml
+        ? 'saml'
+        : req.user_info?.auth_provider || 'email-password',
+    })
+  }
+  if (typeof Analytics?.identifyUser === 'function') {
+    Analytics.identifyUser(
+      user._id,
+      anonymousAnalyticsId,
+      isNewUser,
+      Boolean(user.labsProgram)
+    )
+  }
 
   logger.debug(
     { email: user.email, userId: user._id.toString() },
