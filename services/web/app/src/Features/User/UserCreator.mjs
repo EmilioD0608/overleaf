@@ -1,5 +1,6 @@
 import logger from '@overleaf/logger'
 import util from 'node:util'
+import crypto from 'node:crypto'
 import { AffiliationError } from '../Errors/Errors.js'
 import Features from '../../infrastructure/Features.mjs'
 import { User } from '../../models/User.mjs'
@@ -55,7 +56,7 @@ async function recordRegistrationEvent(user) {
 
 async function createNewUser(attributes, options = {}) {
   if (!attributes.analyticsId) {
-    throw new Error('bug: attributes.analyticsId is missing')
+    attributes.analyticsId = crypto.randomUUID()
   }
   let user = new User()
 

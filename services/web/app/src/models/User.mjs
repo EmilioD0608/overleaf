@@ -1,4 +1,5 @@
 import Settings from '@overleaf/settings'
+import crypto from 'node:crypto'
 import mongoose from '../infrastructure/Mongoose.mjs'
 import TokenGenerator from '../Features/TokenGenerator/TokenGenerator.mjs'
 const { Schema } = mongoose
@@ -242,7 +243,13 @@ export const UserSchema = new Schema(
     },
     onboardingEmailSentAt: { type: Date },
     splitTests: Schema.Types.Mixed,
-    analyticsId: { type: String, required: true },
+    analyticsId: {
+      type: String,
+      default() {
+        return crypto.randomUUID()
+      },
+      required: true,
+    },
     completedTutorials: Schema.Types.Mixed,
     suspended: { type: Boolean },
     dsMobileApp: {
@@ -255,6 +262,14 @@ export const UserSchema = new Schema(
   },
   { minimize: false }
 )
+
+function ensureAnalyticsId(next) {
+  if (!this.analyticsId) {
+    this.analyticsId = this._id ? this._id.toString() : crypto.randomUUID()
+  }
+  next()
+}
+UserSchema.pre('validate', ensureAnalyticsId)
 
 function formatSplitTestsSchema(next) {
   if (this.splitTests) {
