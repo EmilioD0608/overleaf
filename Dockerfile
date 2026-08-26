@@ -12,8 +12,10 @@ FROM sharelatex/sharelatex:latest
 RUN tlmgr option repository https://mirror.ctan.org/systems/texlive/tlnet && \
     tlmgr update --self && \
     tlmgr install scheme-full && \
+    tlmgr path add && \
     updmap-sys || true && \
-    fc-cache -fv || true
+    fc-cache -fv || true && \
+    luaotfload-tool --update --force || true
 
 WORKDIR /overleaf
 
